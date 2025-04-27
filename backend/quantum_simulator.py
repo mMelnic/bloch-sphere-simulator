@@ -46,7 +46,7 @@ class QuantumSimulator:
 
         Supported states include: zero, one, plus, minus, i_plus, i_minus.
         """
-        self.history.append((self.qubit.alpha.copy(), self.qubit.beta.copy()))
+        self.history.append((self.qubit.alpha, self.qubit.beta))
         self.qubit.set_preset(preset)
 
     def apply_gate(self, gate_name, **kwargs):
@@ -58,7 +58,7 @@ class QuantumSimulator:
         Supported gates include: identity, pauli_x, pauli_y, pauli_z, hadamard, phase, t, 
         rotation_x, rotation_y, rotation_z.
         """
-        self.history.append((self.qubit.alpha.copy(), self.qubit.beta.copy()))
+        self.history.append((self.qubit.alpha, self.qubit.beta))
         gate = self._get_gate_by_name(gate_name, **kwargs)
         self.qubit.apply_gate(gate)
 
@@ -84,7 +84,7 @@ class QuantumSimulator:
             while f"{name}_{version}" in self.saved_states:
                 version += 1
             name = f"{name}_{version}"
-        self.saved_states[name] = (self.qubit.alpha.copy(), self.qubit.beta.copy())
+        self.saved_states[name] = (self.qubit.alpha, self.qubit.beta)
 
     def load_state(self, name):
         """
@@ -94,7 +94,7 @@ class QuantumSimulator:
         """
         if name in self.saved_states:
             alpha, beta = self.saved_states[name]
-            self.history.append((self.qubit.alpha.copy(), self.qubit.beta.copy()))
+            self.history.append((self.qubit.alpha, self.qubit.beta))
             self.qubit.alpha = alpha
             self.qubit.beta = beta
         else:
