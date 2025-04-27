@@ -14,14 +14,43 @@ class QuantumSimulator:
         if self._initialized:
             return
         self.qubit = QubitState()
+        self.history = []
+        self.saved_states = {}  # name -> (alpha, beta)
         self._initialized = True
 
     def reset(self, preset="zero"):
+        self.history.append((self.qubit.alpha.copy(), self.qubit.beta.copy()))
         self.qubit.set_preset(preset)
 
     def apply_gate(self, gate_name, **kwargs):
+        self.history.append((self.qubit.alpha.copy(), self.qubit.beta.copy()))
         gate = self._get_gate_by_name(gate_name, **kwargs)
         self.qubit.apply_gate(gate)
+
+    def undo(self):
+        if self.history:
+            alpha, beta = self.history.pop()
+            self.qubit.alpha = alpha
+            self.qubit.beta = beta
+        else:
+            print("No more undos available!")
+
+    def save_state(self, name):
+        if name in self.saved_states:
+            version = 1
+            while f"{name}_{version}" in self.saved_states:
+                version += 1
+            name = f"{name}_{version}"
+        self.saved_states[name] = (self.qubit.alpha.copy(), self.qubit.beta.copy())
+
+    def load_state(self, name):
+        if name in self.saved_states:
+            alpha, beta = self.saved_states[name]
+            self.history.append((self.qubit.alpha.copy(), self.qubit.beta.copy()))
+            self.qubit.alpha = alpha
+            self.qubit.beta = beta
+        else:
+            print(f"No saved state named '{name}'")
 
     def get_state_vector(self):
         return self.qubit.get_state_vector()
