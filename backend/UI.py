@@ -159,7 +159,7 @@ class QuantumGUI(QWidget):
         name = self.save_input.text()
         if name:
             self.simulator.save_state(name)
-            self.load_combo.addItem(name)
+            self.load_combo.addItem(self.simulator.last_state_name)
             self.save_input.clear()
 
     def load_state(self):
