@@ -85,6 +85,7 @@ class QuantumSimulator:
                 version += 1
             name = f"{name}_{version}"
         self.saved_states[name] = (self.qubit.alpha, self.qubit.beta)
+        self.last_state_name = name
 
     def load_state(self, name):
         """
