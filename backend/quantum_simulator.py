@@ -36,6 +36,7 @@ class QuantumSimulator:
             return
         self.qubit = QubitState()
         self.history = []
+        self.redo_stack = []
         self.saved_states = {}  # name -> (alpha, beta)
         self._initialized = True
 
@@ -47,6 +48,7 @@ class QuantumSimulator:
         Supported states include: zero, one, plus, minus, i_plus, i_minus.
         """
         self.history.append((self.qubit.alpha, self.qubit.beta))
+        self.redo_stack.clear()
         self.qubit.set_preset(preset)
 
     def apply_gate(self, gate_name, **kwargs):
@@ -59,6 +61,7 @@ class QuantumSimulator:
         rotation_x, rotation_y, rotation_z.
         """
         self.history.append((self.qubit.alpha, self.qubit.beta))
+        self.redo_stack.clear()
         gate = self._get_gate_by_name(gate_name, **kwargs)
         self.qubit.apply_gate(gate)
 
@@ -67,11 +70,21 @@ class QuantumSimulator:
         Undoes the last operation (either gate or reset) by restoring the previous qubit state.
         """
         if self.history:
+            self.redo_stack.append((self.qubit.alpha, self.qubit.beta))
             alpha, beta = self.history.pop()
             self.qubit.alpha = alpha
             self.qubit.beta = beta
         else:
             print("No more undos available!")
+
+    def redo(self):
+        if self.redo_stack:
+            self.history.append((self.qubit.alpha, self.qubit.beta))
+            alpha, beta = self.redo_stack.pop()
+            self.qubit.alpha = alpha
+            self.qubit.beta = beta
+        else:
+            print("No more redos available!")
 
     def save_state(self, name):
         """
@@ -147,5 +160,7 @@ class QuantumSimulator:
         elif gate_name == "rotation_z":
             theta = kwargs.get("theta", 0)
             return QuantumGates.rotation_z(theta)
+        elif gate_name == "custom":
+            return QuantumGates.custom_gate(kwargs.get("matrix"))
         else:
             raise ValueError(f"Unknown gate name: {gate_name}")

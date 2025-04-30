@@ -151,8 +151,11 @@ class QuantumGUI(QWidget):
         if 'rotation' in gate_name:
             theta = np.deg2rad(self.rotation_slider.value())
             kwargs['theta'] = theta
-        self.simulator.apply_gate(gate_name, **kwargs)
-        self.update_bloch()
+        try:
+            self.simulator.apply_gate(gate_name, **kwargs)
+            self.update_bloch()
+        except Exception as e:
+            print(f"Failed to apply gate: {e}")
         
     def redo(self):
         self.simulator.redo()
