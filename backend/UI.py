@@ -86,6 +86,10 @@ class QuantumGUI(QWidget):
         self.apply_gate_btn.clicked.connect(self.apply_gate)
         gate_layout.addWidget(self.apply_gate_btn)
 
+        self.redo_btn = QPushButton("Redo")
+        self.redo_btn.clicked.connect(self.redo)
+        state_layout.addWidget(self.redo_btn)
+
         self.rotation_label = QLabel("Rotation Angle (for Rx, Ry, Rz): 0°")
         gate_layout.addWidget(self.rotation_label)
 
@@ -118,6 +122,15 @@ class QuantumGUI(QWidget):
         self.load_btn = QPushButton("Load State")
         self.load_btn.clicked.connect(self.load_state)
 
+        self.custom_gate_label = QLabel("Custom Gate (2x2 matrix):")
+        self.custom_gate_input = QLineEdit()
+        self.custom_gate_input.setPlaceholderText('e.g., [[0,1],[1,0]]')
+        gate_layout.addWidget(self.custom_gate_label)
+        gate_layout.addWidget(self.custom_gate_input)
+
+        self.gate_combo.currentTextChanged.connect(self.toggle_custom_gate_input)
+        self.toggle_custom_gate_input(self.gate_combo.currentText())
+
         state_layout.addWidget(self.save_input)
         state_layout.addWidget(self.save_btn)
         state_layout.addWidget(QLabel("Saved States:"))
@@ -141,7 +154,11 @@ class QuantumGUI(QWidget):
         self.simulator.apply_gate(gate_name, **kwargs)
         self.update_bloch()
         
+    def redo(self):
+        self.simulator.redo()
+        self.update_bloch()
 
+    
     def update_rotation_label(self):
         angle = self.rotation_slider.value()
         self.rotation_label.setText(f"Rotation Angle (for Rx, Ry, Rz): {angle}°")
@@ -166,6 +183,11 @@ class QuantumGUI(QWidget):
         name = self.load_combo.currentText()
         self.simulator.load_state(name)
         self.update_bloch()
+        
+    def toggle_custom_gate_input(self, gate_name):
+        is_custom = (gate_name == 'custom')
+        self.custom_gate_label.setVisible(is_custom)
+        self.custom_gate_input.setVisible(is_custom)
 
     def update_bloch(self):
         theta, phi = self.simulator.get_bloch_coordinates()
@@ -176,6 +198,23 @@ class QuantumGUI(QWidget):
         self.bloch.clear()
         self.bloch.add_states(state_qobj)
         self.bloch.show()
+
+    def apply_gate(self):
+        gate_name = self.gate_combo.currentText()
+        kwargs = {}
+        if 'rotation' in gate_name:
+            theta = np.deg2rad(self.rotation_slider.value())
+            kwargs['theta'] = theta
+        elif gate_name == 'custom':
+            matrix_str = self.custom_gate_input.text()
+            try:
+                matrix = eval(matrix_str, {"__builtins__": {}}, {})
+                kwargs['matrix'] = matrix
+            except Exception as e:
+                print(f"Invalid custom matrix: {e}")
+                return
+        self.simulator.apply_gate(gate_name, **kwargs)
+        self.update_bloch() 
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
