@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 from PyQt5.QtWidgets import (QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout,
-                             QLabel, QComboBox, QSlider, QLineEdit)
+                             QLabel, QComboBox, QSlider, QLineEdit, QGridLayout)
 from PyQt5.QtCore import Qt
 from qutip import Bloch 
 from quantum_simulator import QuantumSimulator
@@ -85,10 +85,8 @@ class QuantumGUI(QWidget):
         self.apply_gate_btn = QPushButton("Apply Gate")
         self.apply_gate_btn.clicked.connect(self.apply_gate)
         gate_layout.addWidget(self.apply_gate_btn)
+        
 
-        self.redo_btn = QPushButton("Redo")
-        self.redo_btn.clicked.connect(self.redo)
-        state_layout.addWidget(self.redo_btn)
 
         self.rotation_label = QLabel("Rotation Angle (for Rx, Ry, Rz): 0°")
         gate_layout.addWidget(self.rotation_label)
@@ -111,7 +109,10 @@ class QuantumGUI(QWidget):
         self.undo_btn = QPushButton("Undo")
         self.undo_btn.clicked.connect(self.undo)
         state_layout.addWidget(self.undo_btn)
-
+        
+        self.redo_btn = QPushButton("Redo")
+        self.redo_btn.clicked.connect(self.redo)
+        state_layout.addWidget(self.redo_btn)
 
         self.save_input = QLineEdit()
         self.save_input.setPlaceholderText("Enter state name to save")
@@ -122,14 +123,9 @@ class QuantumGUI(QWidget):
         self.load_btn = QPushButton("Load State")
         self.load_btn.clicked.connect(self.load_state)
 
-        self.custom_gate_label = QLabel("Custom Gate (2x2 matrix):")
-        self.custom_gate_input = QLineEdit()
-        self.custom_gate_input.setPlaceholderText('e.g., [[0,1],[1,0]]')
-        gate_layout.addWidget(self.custom_gate_label)
-        gate_layout.addWidget(self.custom_gate_input)
-
-        self.gate_combo.currentTextChanged.connect(self.toggle_custom_gate_input)
-        self.toggle_custom_gate_input(self.gate_combo.currentText())
+        self.custom_btn = QPushButton("Custom...")
+        self.custom_btn.clicked.connect(self.show_custom_popup)
+        gate_layout.addWidget(self.custom_btn)
 
         state_layout.addWidget(self.save_input)
         state_layout.addWidget(self.save_btn)
@@ -145,6 +141,48 @@ class QuantumGUI(QWidget):
         self.setLayout(main_layout)
         self.update_bloch()
 
+    def show_custom_popup(self):
+        self.custom_popup = QWidget()
+        self.custom_popup.setWindowTitle("Custom Gate Matrix")
+        layout = QVBoxLayout()
+    
+        grid = QGridLayout()
+        self.matrix_inputs = [[QLineEdit() for _ in range(2)] for _ in range(2)]
+    
+        # Fill grid with 2x2 editable fields
+        for i in range(2):
+            for j in range(2):
+                self.matrix_inputs[i][j].setPlaceholderText("e.g. 1/sqrt(2)")
+                grid.addWidget(self.matrix_inputs[i][j], i, j)
+    
+        layout.addLayout(grid)
+    
+        apply_btn = QPushButton("Apply gate")
+        apply_btn.clicked.connect(self.apply_custom_gate)
+        layout.addWidget(apply_btn)
+    
+        self.custom_popup.setLayout(layout)
+        self.custom_popup.setFixedSize(300, 150)
+        self.custom_popup.show()
+
+    def apply_custom_gate(self):
+        try:
+            matrix = []
+            for i in range(2):
+                row = []
+                for j in range(2):
+                    text = self.matrix_inputs[i][j].text()
+                    value = complex(eval(text, {"sqrt": np.sqrt, "pi": np.pi, "__builtins__": {}}))
+                    row.append(value)
+                matrix.append(row)
+    
+            self.simulator.apply_gate("custom", matrix=matrix)
+            self.update_bloch()
+
+            self.custom_popup.close()
+        except Exception as e:
+            print(f"Error parsing matrix: {e}")
+
     def apply_gate(self):
         gate_name = self.gate_combo.currentText()
         kwargs = {}
@@ -156,12 +194,12 @@ class QuantumGUI(QWidget):
             self.update_bloch()
         except Exception as e:
             print(f"Failed to apply gate: {e}")
-        
+
     def redo(self):
         self.simulator.redo()
         self.update_bloch()
+        
 
-    
     def update_rotation_label(self):
         angle = self.rotation_slider.value()
         self.rotation_label.setText(f"Rotation Angle (for Rx, Ry, Rz): {angle}°")
@@ -179,18 +217,13 @@ class QuantumGUI(QWidget):
         name = self.save_input.text()
         if name:
             self.simulator.save_state(name)
-            self.load_combo.addItem(self.simulator.last_state_name)
+            self.load_combo.addItem(name)
             self.save_input.clear()
 
     def load_state(self):
         name = self.load_combo.currentText()
         self.simulator.load_state(name)
         self.update_bloch()
-        
-    def toggle_custom_gate_input(self, gate_name):
-        is_custom = (gate_name == 'custom')
-        self.custom_gate_label.setVisible(is_custom)
-        self.custom_gate_input.setVisible(is_custom)
 
     def update_bloch(self):
         theta, phi = self.simulator.get_bloch_coordinates()
@@ -201,23 +234,6 @@ class QuantumGUI(QWidget):
         self.bloch.clear()
         self.bloch.add_states(state_qobj)
         self.bloch.show()
-
-    def apply_gate(self):
-        gate_name = self.gate_combo.currentText()
-        kwargs = {}
-        if 'rotation' in gate_name:
-            theta = np.deg2rad(self.rotation_slider.value())
-            kwargs['theta'] = theta
-        elif gate_name == 'custom':
-            matrix_str = self.custom_gate_input.text()
-            try:
-                matrix = eval(matrix_str, {"__builtins__": {}}, {})
-                kwargs['matrix'] = matrix
-            except Exception as e:
-                print(f"Invalid custom matrix: {e}")
-                return
-        self.simulator.apply_gate(gate_name, **kwargs)
-        self.update_bloch() 
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
