@@ -160,5 +160,7 @@ class QuantumSimulator:
         elif gate_name == "rotation_z":
             theta = kwargs.get("theta", 0)
             return QuantumGates.rotation_z(theta)
+        elif gate_name == "custom":
+            return QuantumGates.custom_gate(kwargs.get("matrix"))
         else:
             raise ValueError(f"Unknown gate name: {gate_name}")

@@ -43,3 +43,17 @@ class QuantumGates:
     def rotation_z(theta):
         return np.array([[np.exp(-1j*theta/2), 0],
                          [0, np.exp(1j*theta/2)]], dtype=complex)
+    
+    @staticmethod
+    def custom_gate(matrix):
+        if matrix is None:
+            raise ValueError("Custom gate must include 'matrix' parameter.")
+        try:
+            matrix = np.array(matrix, dtype=complex)
+        except Exception as e:
+            raise ValueError(f"Invalid matrix format: {e}")
+        if matrix.shape != (2, 2):
+            raise ValueError("Custom gate matrix must be 2x2.")
+        if not np.allclose(matrix.conj().T @ matrix, np.eye(2), atol=1e-8):
+            raise ValueError("Custom gate matrix must be unitary.")
+        return matrix
