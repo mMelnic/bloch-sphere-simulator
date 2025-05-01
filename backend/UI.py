@@ -153,6 +153,8 @@ class QuantumGUI(QWidget):
         for i in range(2):
             for j in range(2):
                 self.matrix_inputs[i][j].setPlaceholderText("e.g. 1/sqrt(2)")
+                if i == 1 and j == 1:
+                    self.matrix_inputs[i][j].setPlaceholderText("e.g. -1/sqrt(2)")
                 grid.addWidget(self.matrix_inputs[i][j], i, j)
     
         layout.addLayout(grid)
@@ -217,7 +219,7 @@ class QuantumGUI(QWidget):
         name = self.save_input.text()
         if name:
             self.simulator.save_state(name)
-            self.load_combo.addItem(name)
+            self.load_combo.addItem(self.simulator.last_state_name)
             self.save_input.clear()
 
     def load_state(self):
