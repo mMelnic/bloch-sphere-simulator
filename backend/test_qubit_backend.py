@@ -55,3 +55,8 @@ def test_bloch_vector_plus_state():
     theta, phi = q.get_bloch_vector()
     assert np.isclose(theta, np.pi/2, atol=1e-6)
     assert np.isclose(phi, 0, atol=1e-6)
+
+def test_normalization():
+    q = QubitState(alpha=3+4j, beta=1+2j)
+    norm = abs(q.alpha)**2 + abs(q.beta)**2
+    assert np.isclose(norm, 1.0, atol=1e-6)
